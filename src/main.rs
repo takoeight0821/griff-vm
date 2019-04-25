@@ -1,5 +1,4 @@
 mod vm;
-use std::rc::Rc;
 use vm::*;
 
 fn entry(vm: &mut Vm) -> Code {
@@ -29,33 +28,29 @@ fn entry(vm: &mut Vm) -> Code {
     vm.let_();
     vm.push_mark();
     vm.ldi(0);
-    vm.ldi(10);
+    vm.ldi(1000);
     vm.access(0);
     vm.apply(Code(|ref mut vm| {
         vm.endlet();
         println!("{:?}", vm.arg_stack);
-        std::process::exit(0)
+        Code(cons_entry)
     }))
 }
 
 fn cons_entry(vm: &mut Vm) -> Code {
-    vm.ldi(810);
-    vm.ldi(42);
     vm.make_block(0, 0);
     vm.make_block(1, 2);
     vm.invoke(
         0,
         Code(|ref mut vm| {
-            let v = vm.arg_stack.pop();
-            println!("{:?}", v);
+            println!("{:?}", vm.arg_stack);
             std::process::exit(0)
         }),
         Code(|ref mut vm| {
             vm.invoke(
                 1,
                 Code(|ref mut vm| {
-                    let v = vm.arg_stack.pop();
-                    println!("{:?}", v);
+                    println!("{:?}", vm.arg_stack);
                     std::process::exit(0);
                 }),
                 Code(|ref mut vm| {
