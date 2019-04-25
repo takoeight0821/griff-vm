@@ -30,7 +30,6 @@ pub struct Vm {
     pub local_env: Env,
 }
 
-#[allow(dead_code)]
 impl Vm {
     pub fn new() -> Vm {
         Vm {
@@ -48,8 +47,11 @@ impl Vm {
         }
     }
 
-    pub fn push_local(&mut self, v: Value) {
-        Rc::make_mut(&mut self.local_env).push(v)
+    pub fn push_locals(&mut self, vs: Vec<Value>) {
+        let local = Rc::make_mut(&mut self.local_env);
+        for v in vs {
+            local.push(v)
+        }
     }
 
     pub fn call_prim<F>(&mut self, f: F)
@@ -77,7 +79,7 @@ impl Vm {
 
     pub fn let_(&mut self) {
         let v = self.pop_arg();
-        self.push_local(v);
+        self.push_locals(vec![v]);
     }
 
     pub fn endlet(&mut self) {
@@ -133,15 +135,15 @@ impl Vm {
     pub fn apply(&mut self, cont: Code) -> Code {
         use Value::*;
         let clos = self.pop_arg();
-        if let Closure { code, env } = clos.clone() {
+        if let Closure { ref code, ref env } = clos {
             let val = self.pop_arg();
             self.ret_stack.push(Closure {
                 code: cont,
                 env: self.local_env.clone(),
             });
-            self.local_env = env;
-            self.push_local(clos);
-            self.push_local(val);
+            self.local_env = env.clone();
+            let code = code.clone();
+            self.push_locals(vec![clos, val]);
             code
         } else {
             unreachable!("apply")
@@ -151,11 +153,11 @@ impl Vm {
     pub fn tail_apply(&mut self) -> Code {
         use Value::*;
         let clos = self.pop_arg();
-        if let Closure { code, env } = clos.clone() {
+        if let Closure { ref code, ref env } = clos {
             let val = self.pop_arg();
-            self.local_env = env;
-            self.push_local(clos);
-            self.push_local(val);
+            self.local_env = env.clone();
+            let code = code.clone();
+            self.push_locals(vec![clos, val]);
             code
         } else {
             unreachable!("tail_apply");
@@ -186,8 +188,7 @@ impl Vm {
                     code: cont.clone(),
                     env: self.local_env.clone(),
                 };
-                self.push_local(clos);
-                self.push_local(v);
+                self.push_locals(vec![clos, v]);
                 cont
             }
         }
@@ -207,14 +208,15 @@ impl Vm {
                     unreachable!("return_clos")
                 }
             }
-            (Closure { code, env }, v) => {
-                self.local_env = env.clone();
-                self.push_local(Closure {
-                    code: code.clone(),
-                    env,
-                });
-                self.push_local(v);
-                code
+            (clos @ Closure { code: _, env: _ }, v) => {
+                if let Closure { ref code, ref env } = clos {
+                    self.local_env = env.clone();
+                    let code = code.clone();
+                    self.push_locals(vec![clos, v]);
+                    code
+                } else {
+                    unreachable!("return_clos")
+                }
             }
             (_, _) => unreachable!("return_clos"),
         }

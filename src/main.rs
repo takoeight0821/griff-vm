@@ -1,4 +1,5 @@
 mod vm;
+use std::rc::Rc;
 use vm::*;
 
 fn entry(vm: &mut Vm) -> Code {
@@ -28,7 +29,7 @@ fn entry(vm: &mut Vm) -> Code {
     vm.let_();
     vm.push_mark();
     vm.ldi(0);
-    vm.ldi(1000);
+    vm.ldi(10);
     vm.access(0);
     vm.apply(Code(|ref mut vm| {
         vm.endlet();
