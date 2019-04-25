@@ -68,7 +68,7 @@ fn cons_entry(vm: &mut Vm) -> Code {
 
 fn main() {
     let mut vm = Vm::new();
-    let mut cont = Code(cons_entry);
+    let mut cont = Code(entry);
 
     loop {
         cont = (cont.0)(&mut vm)
